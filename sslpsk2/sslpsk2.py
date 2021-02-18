@@ -48,41 +48,8 @@ def _unregister_callback(ref):
     print("This is ref.ssl_id = ", ref.ssl_id)
     del _callbacks[ref.ssl_id]
 
-def _python_psk_client_callback(ssl_id, hint):
-    #Called by _sslpsk2.c to return the (psk, identity) tuple for the socket with the specified ssl socket.
-    
-    print("[sslpsk2.py][_python_psk_client_callback] - _python_psk_client_callback")
-    print("[sslpsk2.py][_python_psk_client_callback] - ssl_id = ", ssl_id)
-    print("[sslpsk2.py][_python_psk_client_callback] - hint = ", hint)
-    print("[sslpsk2.py][_python_psk_client_callback] - _callbacks = ", _callbacks)
-
-    if ssl_id not in _callbacks:
-        print("[sslpsk2.py][_python_psk_client_callback] - ssl_id not in callbacks. It will return (b'', b'')")
-        return (b"", b"")
-    else:
-        print("[sslpsk2.py][_python_psk_client_callback] - ssl_id in callbacks. It will return res")
-        print("Time when thread reached this client callback = ", datetime.datetime.now().time())
-        res = _callbacks[ssl_id](hint)
-
-        hint = res[1].decode("utf-8")
-        print("Hint value = ", hint)
-        #hint = hint.decode("utf-8")
-        client_identity = _callbacks[ssl_id](b'identity')[0].decode("utf-8")
-        client_value = _callbacks[ssl_id](b'value')[0].decode("utf-8")
-
-        print("Value dari client_identity = ", client_identity)
-        print("Type dari client_identity = ", type(client_identity))
-
-        concated_hint = client_value+"*"+client_identity+"*"+hint
-        concated_hint = concated_hint.encode()
-        print("[sslpsk2.py][_python_psk_client_callback] - res before = ", res)
-        res_2 = (res[0], concated_hint)
-        print("[sslpsk2.py][_python_psk_client_callback] - res after= ", res_2)
-        res = res_2
-        return res if isinstance(res, tuple) else (res, b"")
-
 #original code of _python_psk_client_callback
-"""
+
 def _python_psk_client_callback(ssl_id, hint):
     #Called by _sslpsk2.c to return the (psk, identity) tuple for the socket with the specified ssl socket.
     print("[sslpsk2.py][_python_psk_client_callback] - _python_psk_client_callback")
@@ -98,7 +65,7 @@ def _python_psk_client_callback(ssl_id, hint):
         res = _callbacks[ssl_id](hint)
         print("[sslpsk2.py][_python_psk_client_callback] - res = ", res)
         return res if isinstance(res, tuple) else (res, b"")
-"""
+
 def _sslobj(sock):
     print("[sslpsk2.py][_sslobj]- _sslobj")
     """Returns the underlying PySLLSocket object with which the C extension
@@ -115,41 +82,9 @@ def _sslobj(sock):
 
     print("[sslpsk2.py][_sslobj] - _sslobj (in the end of _sslobj)")
 
-def _python_psk_server_callback(ssl_id, identity):
-    print("[sslpsk2.py][_python_psk_server_callback] - _python_psk_server_callback")
-    print("[sslpsk2.py][_python_psk_server_callback] - ssl_id = ", ssl_id)
-    print("[sslpsk2.py][_python_psk_server_callback] - identity = ", identity)
-    print("[sslpsk2.py][_python_psk_server_callback] - _callbacks = ", _callbacks)
-    #print("[sslpsk2.py][_python_psk_server_callback] - client_identity = ", client_identity)
-    #print("[sslpsk2.py][_python_psk_server_callback] - client_value = ", client_value)
-
-    #Called by _sslpsk2.c to return the psk for the socket with the specified ssl socket.
-
-    if ssl_id not in _callbacks:
-        print("[sslpsk2.py][_python_psk_server_callback] - ssl_id not in _callbacks")
-        return b""
-    else:
-        print("[sslpsk2.py][_python_psk_server_callback] - ssl_id in _callbacks, it will return _callbacks")
-        print("Time when thread reached this client callback = ", datetime.datetime.now().time())
-        parsed_identity = identity.decode("utf-8").split("*")
-        print("parsed identity = ", parsed_identity)
-        client_value = parsed_identity[0]
-        client_identity = parsed_identity[1]
-        print("client value = ", client_value)
-        print("client identity = ", client_identity)
-        identity = parsed_identity[2].encode()
-
-        result = _callbacks[ssl_id](identity)
-        print("Result = ", result)
-        print("identity bytes form = ", identity)
-        result_mock = "false".encode()
-        print("After encode = ", result_mock)
-        #return _callbacks[ssl_id](identity)
-        return result_mock
-
 #original code of _python_psk_server_callback
 
-"""
+
 def _python_psk_server_callback(ssl_id, identity):
     print("[sslpsk2.py][_python_psk_server_callback] - _python_psk_server_callback")
     print("[sslpsk2.py][_python_psk_server_callback] - ssl_id = ", ssl_id)
@@ -164,7 +99,7 @@ def _python_psk_server_callback(ssl_id, identity):
         print("[sslpsk2.py][_python_psk_server_callback] - ssl_id in _callbacks, it will return _callbacks")
         print("Result --->>>>>>>>>>>>> = ", _callbacks[ssl_id](identity))
         return _callbacks[ssl_id](identity)
-"""
+
 print("[sslpsk2.py] --------------------------------------")
 print(
     "[sslpsk2.py] NOT IN ANY METHOD - Call _sslpsk2 object to set python psk client callback and server client callback")
@@ -181,7 +116,6 @@ def _ssl_set_psk_client_callback(sock, psk_cb):
     print("[sslpsk2.py][_ssl_set_psk_client_callback] - psk_cb = ", psk_cb)
     _register_callback(sock, ssl_id, psk_cb)
 
-
 def _ssl_set_psk_server_callback(sock, psk_cb, hint):
     print("[sslpsk2.py][_ssl_set_psk_server_callback] - _ssl_set_psk_server_callback 2")
 
@@ -189,7 +123,6 @@ def _ssl_set_psk_server_callback(sock, psk_cb, hint):
     _ = _sslpsk2.sslpsk2_set_psk_server_callback(_sslobj(sock))
     _ = _sslpsk2.sslpsk2_use_psk_identity_hint(_sslobj(sock), hint if hint else b"")
     _register_callback(sock, ssl_id, psk_cb)
-
 
 def wrap_socket(*args, **kwargs):
     """
@@ -247,5 +180,5 @@ def wrap_socket(*args, **kwargs):
     return sock
 
 def make_sound():
-    print("Bisa sukses, bisa berhasil ngecrack, insya Allah!")
+    print("Bismillahirohmanirohim")
 
